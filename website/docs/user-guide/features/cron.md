@@ -326,6 +326,41 @@ Cron jobs run in a completely fresh agent session. The prompt must contain every
 
 **GOOD:** `"SSH into server 192.168.1.100 as user 'deploy', check if nginx is running with 'systemctl status nginx', and verify https://example.com returns HTTP 200."`
 
+## Model and Provider Inheritance
+
+Cron jobs use the **global model and provider** from `config.yaml` at execution time. There is no per-job model pinning through the CLI or chat interface.
+
+This means:
+- If you change `model.default` or `model.provider` in `config.yaml`, all existing cron jobs will use the new model on their next run.
+- To use a specific model for coaching or automation jobs, keep your `config.yaml` pointed at that model — or create a separate [profile](/docs/user-guide/profiles) with its own config.
+
+:::tip
+The underlying job storage (`jobs.json`) supports per-job `model`, `provider`, and `base_url` fields, but these are not currently exposed in the CLI or chat creation flow. If you need stable per-job model pinning, you can edit `~/.hermes/cron/jobs.json` directly.
+:::
+
+## Gateway Requirement
+
+**Cron jobs only execute automatically when the gateway is running.** The gateway's tick loop checks for due jobs every 60 seconds.
+
+```bash
+# Start the gateway
+hermes gateway start
+
+# Or install as a system service for always-on operation
+hermes gateway install
+
+# Check if the gateway is running
+hermes gateway status
+```
+
+If the gateway is stopped, recurring jobs missed during the outage may be fast-forwarded (executed once on restart) rather than replayed for each missed interval.
+
+You can also manually trigger any job from the CLI without the gateway:
+
+```bash
+hermes cron run <job-id>
+```
+
 ## Security
 
 Scheduled task prompts are scanned for prompt-injection and credential-exfiltration patterns at creation and update time. Prompts containing invisible Unicode tricks, SSH backdoor attempts, or obvious secret-exfiltration payloads are blocked.

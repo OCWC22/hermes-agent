@@ -757,6 +757,39 @@ By default, Hermes uses the [Firecrawl cloud API](https://firecrawl.dev/) for we
 
 You can also set both `FIRECRAWL_API_KEY` and `FIRECRAWL_API_URL` if your self-hosted instance has authentication enabled.
 
+## Vercel AI Gateway
+
+[Vercel AI Gateway](https://vercel.com/docs/ai-gateway) acts as a proxy to multiple AI providers. Using its BYOK (Bring Your Own Key) feature, you can route Hermes through your own provider API keys — for example, using a free Google AI Studio key to access Gemma models at zero cost.
+
+### Setup
+
+1. Set your AI Gateway API key:
+   ```bash
+   hermes config set AI_GATEWAY_API_KEY your-key-here
+   ```
+
+2. Configure in `config.yaml`:
+   ```yaml
+   model:
+     provider: ai-gateway
+     default: google/gemma-4-31b-it   # Verify with `hermes model`
+   ```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AI_GATEWAY_API_KEY` | Yes | Your Vercel AI Gateway API key |
+| `AI_GATEWAY_BASE_URL` | No | Custom gateway endpoint (default: `https://ai-gateway.vercel.sh/v1`) |
+
+### Model Discovery
+
+Hermes discovers available models by querying the AI Gateway `/models` endpoint. Only models tagged as `tool-use` capable language models are listed. Run `hermes model --provider ai-gateway` to see what's available.
+
+:::tip Gemma on AI Gateway
+Google AI Studio offers 1,500 free daily requests to Gemma models. Combine this with Vercel AI Gateway BYOK for a zero-cost agent setup. See the [Self-Improvement Coach guide](/docs/guides/gemma-self-improvement-coach) for a complete walkthrough.
+:::
+
 ## OpenRouter Provider Routing
 
 When using OpenRouter, you can control how requests are routed across providers. Add a `provider_routing` section to `~/.hermes/config.yaml`:

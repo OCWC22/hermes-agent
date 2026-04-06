@@ -88,6 +88,38 @@ model:
 #     model: google/gemini-2.5-flash
 
 # =============================================================================
+# Example: Gemma Self-Improvement Coach on Vercel AI Gateway
+# =============================================================================
+# Free-tier personal coaching agent using Google's Gemma 4 31B via AI Gateway.
+# Requires: AI_GATEWAY_API_KEY in ~/.hermes/.env
+# Full guide: https://hermes-agent.nousresearch.com/docs/guides/gemma-self-improvement-coach
+#
+# model:
+#   provider: ai-gateway
+#   default: google/gemma-4-31b-it     # Verify slug with: hermes model --provider ai-gateway
+#
+# agent:
+#   tool_use_enforcement: ["gemma"]     # Ensure Gemma gets tool-use steering
+#
+# memory:
+#   memory_enabled: true
+#   user_profile_enabled: true
+#   memory_char_limit: 3200            # More room for goals and habits
+#   user_char_limit: 2200              # More room for coaching preferences
+#   nudge_interval: 6                  # Save memory more often for coaching
+#   flush_min_turns: 4                 # Flush on shorter sessions
+#
+# skills:
+#   creation_nudge_interval: 8         # Encourage saving coaching routines
+#
+# smart_model_routing:
+#   enabled: false                     # Keep coaching voice consistent
+#
+# compression:
+#   enabled: true
+#   threshold: 0.45                    # Compress earlier for Gemma's context window
+
+# =============================================================================
 # Git Worktree Isolation
 # =============================================================================
 # When enabled, each CLI session creates an isolated git worktree so multiple

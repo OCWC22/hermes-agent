@@ -360,7 +360,14 @@ memory:
   user_profile_enabled: true
   memory_char_limit: 2200   # ~800 tokens
   user_char_limit: 1375     # ~500 tokens
+  nudge_interval: 10        # Remind agent to review memory every N user turns (0 = disabled)
+  flush_min_turns: 6        # On session end, give agent one turn to save memories
+                            # if the session had at least this many user turns (0 = disabled)
 ```
+
+**`nudge_interval`** — Every N user turns, the agent is reminded to consider saving durable facts to memory. Lower values (e.g., 6) make memory updates more frequent; higher values or 0 keep the agent focused on the task. Only active when `memory_enabled` is true and the memory tool is loaded.
+
+**`flush_min_turns`** — When a session ends (exit, `/reset`, context compression), the agent gets one final turn to save important memories before the conversation context is lost. This only fires if the session had at least this many user turns, avoiding unnecessary flushes on short interactions.
 
 ## File Read Safety
 
@@ -742,12 +749,14 @@ agent:
 
 | Value | Behavior |
 |-------|----------|
-| `"auto"` (default) | Enabled for GPT models (`gpt-`, `openai/gpt-`) and disabled for all others. |
+| `"auto"` (default) | Enabled for GPT, Codex, Gemini, and Gemma models. Disabled for all others. |
 | `true` | Always enabled for all models. |
 | `false` | Always disabled. |
-| `["gpt-", "o1-", "custom-model"]` | Enabled only for models whose name contains one of the listed substrings. |
+| `["gpt-", "gemma", "custom-model"]` | Enabled only for models whose name contains one of the listed substrings. |
 
 When enabled, the system prompt includes guidance reminding the model to make actual tool calls rather than describing what it would do. This is transparent to the user and has no effect on models that already use tools reliably.
+
+Gemini and Gemma models additionally receive **Google model operational guidance** — instructions for using absolute paths, verifying before editing, making parallel tool calls, using non-interactive flags, and staying concise. This is applied automatically whenever the model name contains `gemini` or `gemma`.
 
 ## TTS Configuration
 
