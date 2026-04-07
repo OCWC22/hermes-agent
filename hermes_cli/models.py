@@ -227,16 +227,23 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "google/gemini-3-pro-preview",
         "google/gemini-3-flash-preview",
     ],
-    # Alibaba DashScope Coding platform (coding-intl) — default endpoint.
-    # Supports Qwen models + third-party providers (GLM, Kimi, MiniMax).
-    # Users with classic DashScope keys should override DASHSCOPE_BASE_URL
-    # to https://dashscope-intl.aliyuncs.com/compatible-mode/v1 (OpenAI-compat)
-    # or https://dashscope-intl.aliyuncs.com/apps/anthropic (Anthropic-compat).
+    # Alibaba DashScope — classic OpenAI-compatible endpoint for native Qwen models.
+    # Base URL: https://dashscope-intl.aliyuncs.com/compatible-mode/v1
     "alibaba": [
         "qwen3.5-plus",
         "qwen3-coder-plus",
         "qwen3-coder-next",
-        # Third-party models available on coding-intl
+        "qwen3-max-2026-01-23",
+    ],
+    # Alibaba DashScope Coding Plan — subscription-based coding platform.
+    # Base URL: https://coding-intl.dashscope.aliyuncs.com/v1
+    # Hosts Qwen coding models + third-party providers (GLM, Kimi, MiniMax).
+    # Requires: DASHSCOPE_CODING_API_KEY (sk-sp-xxxxx) in ~/.hermes/.env
+    # Subscribe: https://www.alibabacloud.com/help/en/model-studio/coding-plan
+    "alibaba-coding": [
+        "qwen3.5-plus",
+        "qwen3-coder-plus",
+        "qwen3-coder-next",
         "glm-5",
         "glm-4.7",
         "kimi-k2.5",
@@ -272,6 +279,7 @@ _PROVIDER_LABELS = {
     "ai-gateway": "AI Gateway",
     "kilocode": "Kilo Code",
     "alibaba": "Alibaba Cloud (DashScope)",
+    "alibaba-coding": "Alibaba Cloud (DashScope Coding)",
     "huggingface": "Hugging Face",
     "custom": "Custom endpoint",
 }
@@ -308,6 +316,9 @@ _PROVIDER_ALIASES = {
     "aliyun": "alibaba",
     "qwen": "alibaba",
     "alibaba-cloud": "alibaba",
+    "dashscope-coding": "alibaba-coding",
+    "alibaba-coding-plan": "alibaba-coding",
+    "coding-intl": "alibaba-coding",
     "hf": "huggingface",
     "hugging-face": "huggingface",
     "huggingface-hub": "huggingface",

@@ -25,6 +25,7 @@ model:
   #   "huggingface"  - Hugging Face Inference (requires: HF_TOKEN)
   #   "kilocode"     - KiloCode gateway (requires: KILOCODE_API_KEY)
   #   "ai-gateway"   - Vercel AI Gateway (requires: AI_GATEWAY_API_KEY)
+  #   "alibaba-coding" - Alibaba DashScope Coding Plan (requires: DASHSCOPE_CODING_API_KEY)
   #
   # Local servers (LM Studio, Ollama, vLLM, llama.cpp):
   #   "custom"       - Any OpenAI-compatible endpoint. Set base_url below.
@@ -86,6 +87,36 @@ model:
 #   cheap_model:
 #     provider: openrouter
 #     model: google/gemini-2.5-flash
+
+# =============================================================================
+# Example: Alibaba DashScope Coding Plan ($50/mo — Qwen, GLM, Kimi, MiniMax)
+# =============================================================================
+# Access top coding models via Alibaba's coding platform subscription.
+# Subscribe: https://www.alibabacloud.com/help/en/model-studio/coding-plan
+# Requires: DASHSCOPE_CODING_API_KEY (sk-sp-xxxxx) in ~/.hermes/.env
+#
+# model:
+#   provider: alibaba-coding
+#   default: qwen3-coder-plus
+#
+# # Switch between models with /model aliases:
+# model_aliases:
+#   qwen:
+#     model: qwen3.5-plus
+#     provider: alibaba-coding
+#   glm:
+#     model: glm-5
+#     provider: alibaba-coding
+#   kimi:
+#     model: kimi-k2.5
+#     provider: alibaba-coding
+#   minimax:
+#     model: MiniMax-M2.5
+#     provider: alibaba-coding
+#   gemma:
+#     model: gemma-4-31b-it
+#     provider: custom
+#     base_url: https://generativelanguage.googleapis.com/v1beta/openai
 
 # =============================================================================
 # Example: Gemma Self-Improvement Coach on Vercel AI Gateway
