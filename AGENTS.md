@@ -65,6 +65,33 @@ hermes-agent/
 
 **User config:** `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys)
 
+## Local MCP Preset: Google Drive Artifact Ledger + Higgsfield
+
+This repo carries Chen's local MCP preset at
+`docs/mcp-guru-drive-higgsfield-preset.yaml`.
+
+It configures Hermes for:
+- RepoPrompt MCP (`RepoPrompt`)
+- RLM MCP (`rlm`)
+- local X MCP (`x`)
+- hosted Higgsfield MCP (`higgsfield`, OAuth)
+
+Hermes exposes MCP tools as `mcp_<server>_<tool>`, for example
+`mcp_higgsfield_generate_image` and `mcp_higgsfield_job_status`.
+
+The Hermes `rlm` entry means the RLM MCP READ path: use it for one-off
+long-context analysis of existing large files, logs, corpora, traces, papers, or
+codebases. It is not the Trampoline PredictRLM BUILD skill and it is not the
+DSPy `dspy.RLM` API. If a task asks to scaffold a reusable callable RLM package,
+use Trampoline PredictRLM instead; if a task asks to edit DSPy code, use
+`dspy.RLM` guidance instead.
+
+Durable MCP outputs should be logged to the Google Drive Artifact Ledger:
+https://docs.google.com/document/d/1eGmCSJg3TPF2UywAD-_0aTvK5gUcwtsEucJkXfRnpeo/edit
+
+For Higgsfield, use the text tool flow: generate, poll `job_status` with
+`sync:true` and the full job id, then call `job_display` after completion.
+
 ## File Dependency Chain
 
 ```
@@ -467,3 +494,12 @@ python -m pytest tests/tools/ -q                 # Tool-level tests
 ```
 
 Always run the full suite before pushing changes.
+
+
+<claude-mem-context>
+# Memory Context
+
+# [hermes-agent] recent context, 2026-05-03 3:55pm PDT
+
+No previous sessions found.
+</claude-mem-context>
