@@ -66,17 +66,22 @@ def build_channel_directory(adapters: Dict[Any, Any]) -> Dict[str, Any]:
 
     platforms: Dict[str, List[Dict[str, str]]] = {}
 
-    for platform, adapter in adapters.items():
+    adapter_names = set()
+    for platform_key, adapter in adapters.items():
+        platform = getattr(adapter, "platform", platform_key)
+        adapter_key = getattr(adapter, "adapter_key", None)
+        plat_name = str(adapter_key or (platform.value if hasattr(platform, "value") else platform_key))
+        adapter_names.add(plat_name)
         try:
             if platform == Platform.DISCORD:
                 platforms["discord"] = _build_discord(adapter)
             elif platform == Platform.SLACK:
                 platforms["slack"] = _build_slack(adapter)
         except Exception as e:
-            logger.warning("Channel directory: failed to build %s: %s", platform.value, e)
+            logger.warning("Channel directory: failed to build %s: %s", plat_name, e)
 
     # Telegram, WhatsApp & Signal can't enumerate chats -- pull from session history
-    for plat_name in ("telegram", "whatsapp", "signal", "email", "sms"):
+    for plat_name in sorted(adapter_names | {"telegram", "whatsapp", "signal", "email", "sms"}):
         if plat_name not in platforms:
             platforms[plat_name] = _build_from_sessions(plat_name)
 
@@ -155,7 +160,8 @@ def _build_from_sessions(platform_name: str) -> List[Dict[str, str]]:
         seen_ids = set()
         for _key, session in data.items():
             origin = session.get("origin") or {}
-            if origin.get("platform") != platform_name:
+            origin_namespace = origin.get("adapter_key") or origin.get("platform")
+            if origin_namespace != platform_name:
                 continue
             entry_id = _session_entry_id(origin)
             if not entry_id or entry_id in seen_ids:

@@ -418,6 +418,7 @@ class BasePlatformAdapter(ABC):
     def __init__(self, config: PlatformConfig, platform: Platform):
         self.config = config
         self.platform = platform
+        self.adapter_key = str(getattr(config, "adapter_key", "") or platform.value)
         self._message_handler: Optional[MessageHandler] = None
         self._running = False
         self._fatal_error_code: Optional[str] = None
@@ -462,7 +463,7 @@ class BasePlatformAdapter(ABC):
         self._fatal_error_retryable = True
         try:
             from gateway.status import write_runtime_status
-            write_runtime_status(platform=self.platform.value, platform_state="connected", error_code=None, error_message=None)
+            write_runtime_status(platform=self.adapter_key, platform_state="connected", error_code=None, error_message=None)
         except Exception:
             pass
 
@@ -472,7 +473,7 @@ class BasePlatformAdapter(ABC):
             return
         try:
             from gateway.status import write_runtime_status
-            write_runtime_status(platform=self.platform.value, platform_state="disconnected", error_code=None, error_message=None)
+            write_runtime_status(platform=self.adapter_key, platform_state="disconnected", error_code=None, error_message=None)
         except Exception:
             pass
 
@@ -484,7 +485,7 @@ class BasePlatformAdapter(ABC):
         try:
             from gateway.status import write_runtime_status
             write_runtime_status(
-                platform=self.platform.value,
+                platform=self.adapter_key,
                 platform_state="fatal",
                 error_code=code,
                 error_message=message,
@@ -503,7 +504,7 @@ class BasePlatformAdapter(ABC):
     @property
     def name(self) -> str:
         """Human-readable name for this adapter."""
-        return self.platform.value.title()
+        return self.adapter_key.title()
     
     @property
     def is_connected(self) -> bool:
@@ -1464,6 +1465,7 @@ class BasePlatformAdapter(ABC):
             chat_topic=chat_topic.strip() if chat_topic else None,
             user_id_alt=user_id_alt,
             chat_id_alt=chat_id_alt,
+            adapter_key=self.adapter_key,
         )
     
     @abstractmethod

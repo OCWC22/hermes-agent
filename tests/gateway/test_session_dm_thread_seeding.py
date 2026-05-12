@@ -219,3 +219,27 @@ class TestDMThreadSeedingCrossPlatform:
         thread_transcript = store.load_transcript(thread_entry.session_id)
         assert len(thread_transcript) == 2
         assert thread_transcript[0]["content"] == "What's the weather?"
+
+
+def test_telegram_dm_thread_seeding_does_not_cross_adapter_key(store):
+    default_parent = SessionSource(
+        platform=Platform.TELEGRAM,
+        adapter_key="telegram",
+        chat_id="123",
+        chat_type="dm",
+        user_id="111",
+    )
+    default_entry = store.get_or_create_session(default_parent)
+    store.append_to_transcript(default_entry.session_id, {"role": "user", "content": "default only"})
+
+    ceo_thread = SessionSource(
+        platform=Platform.TELEGRAM,
+        adapter_key="telegram:ceo",
+        chat_id="123",
+        chat_type="dm",
+        user_id="111",
+        thread_id="thread-1",
+    )
+    ceo_entry = store.get_or_create_session(ceo_thread)
+
+    assert store.load_transcript(ceo_entry.session_id) == []

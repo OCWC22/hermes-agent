@@ -94,3 +94,48 @@ class TestDeliveryRouter:
         targets = router.resolve_targets(["local"])
 
         assert [target.platform for target in targets] == [Platform.LOCAL]
+
+
+def test_account_qualified_telegram_target():
+    target = DeliveryTarget.parse("telegram:ceo:123456789")
+
+    assert target.platform == Platform.TELEGRAM
+    assert target.adapter_key == "telegram:ceo"
+    assert target.chat_id == "123456789"
+    assert target.to_string() == "telegram:ceo:123456789"
+
+
+def test_account_qualified_telegram_target_with_thread():
+    target = DeliveryTarget.parse("telegram:infra:-1001234567890:17585")
+
+    assert target.adapter_key == "telegram:infra"
+    assert target.chat_id == "-1001234567890"
+    assert target.thread_id == "17585"
+    assert target.to_string() == "telegram:infra:-1001234567890:17585"
+
+
+def test_missing_named_telegram_adapter_does_not_fallback_to_default():
+    class DummyAdapter:
+        async def send(self, chat_id, content, metadata=None):  # pragma: no cover - must not be called
+            raise AssertionError("default adapter should not be used")
+
+    router = DeliveryRouter(GatewayConfig(always_log_local=False), adapters={Platform.TELEGRAM: DummyAdapter()})
+    target = DeliveryTarget.parse("telegram:ceo:123")
+
+    import asyncio
+    try:
+        asyncio.run(router._deliver_to_platform(target, "hello", None))
+    except ValueError as exc:
+        assert 'Telegram adapter "telegram:ceo" is not configured.' in str(exc)
+        assert "Configured adapters: telegram." in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("missing named adapter should raise")
+
+
+def test_origin_delivery_preserves_adapter_key():
+    origin = SessionSource(platform=Platform.TELEGRAM, adapter_key="telegram:ceo", chat_id="123")
+
+    target = DeliveryTarget.parse("origin", origin=origin)
+
+    assert target.adapter_key == "telegram:ceo"
+    assert target.to_string() == "origin"
