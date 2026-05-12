@@ -94,3 +94,21 @@ class TestDeliveryRouter:
         targets = router.resolve_targets(["local"])
 
         assert [target.platform for target in targets] == [Platform.LOCAL]
+
+
+def test_account_qualified_telegram_target():
+    target = DeliveryTarget.parse("telegram:ceo:123456789")
+
+    assert target.platform == Platform.TELEGRAM
+    assert target.adapter_key == "telegram:ceo"
+    assert target.chat_id == "123456789"
+    assert target.to_string() == "telegram:ceo:123456789"
+
+
+def test_account_qualified_telegram_target_with_thread():
+    target = DeliveryTarget.parse("telegram:infra:-1001234567890:17585")
+
+    assert target.adapter_key == "telegram:infra"
+    assert target.chat_id == "-1001234567890"
+    assert target.thread_id == "17585"
+    assert target.to_string() == "telegram:infra:-1001234567890:17585"

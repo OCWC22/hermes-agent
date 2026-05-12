@@ -90,6 +90,7 @@ class SessionSource:
     chat_topic: Optional[str] = None  # Channel topic/description (Discord, Slack)
     user_id_alt: Optional[str] = None  # Signal UUID (alternative to phone number)
     chat_id_alt: Optional[str] = None  # Signal group internal ID
+    adapter_key: Optional[str] = None  # Account-qualified adapter namespace (e.g. telegram:ceo)
     
     @property
     def description(self) -> str:
@@ -142,6 +143,7 @@ class SessionSource:
             chat_topic=data.get("chat_topic"),
             user_id_alt=data.get("user_id_alt"),
             chat_id_alt=data.get("chat_id_alt"),
+            adapter_key=data.get("adapter_key"),
         )
     
     @classmethod
@@ -469,7 +471,7 @@ def build_session_key(
         shared session per chat.
       - Without identifiers, messages fall back to one session per platform/chat_type.
     """
-    platform = source.platform.value
+    platform = source.adapter_key or source.platform.value
     if source.chat_type == "dm":
         if source.chat_id:
             if source.thread_id:
