@@ -263,3 +263,38 @@ class TestFormatDirectoryForDisplay:
         assert "Discord (Server1):" in result
         assert "Discord (Server2):" in result
         assert "discord:#general" in result
+
+
+def test_account_qualified_telegram_sessions_do_not_collapse(tmp_path):
+    sessions_path = tmp_path / "sessions" / "sessions.json"
+    sessions_path.parent.mkdir(parents=True)
+    sessions_path.write_text(json.dumps({
+        "ceo": {
+            "origin": {
+                "platform": "telegram",
+                "adapter_key": "telegram:ceo",
+                "chat_id": "123",
+                "user_name": "Alice",
+            },
+            "chat_type": "dm",
+        },
+        "research": {
+            "origin": {
+                "platform": "telegram",
+                "adapter_key": "telegram:research",
+                "chat_id": "123",
+                "user_name": "Alice",
+            },
+            "chat_type": "dm",
+        },
+    }))
+
+    with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+        ceo_entries = _build_from_sessions("telegram:ceo")
+        research_entries = _build_from_sessions("telegram:research")
+        default_entries = _build_from_sessions("telegram")
+
+    assert len(ceo_entries) == 1
+    assert len(research_entries) == 1
+    assert default_entries == []
+    assert ceo_entries[0]["id"] == research_entries[0]["id"] == "123"

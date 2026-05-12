@@ -173,3 +173,52 @@ python -m pytest tests/ -q
 MIT — see [LICENSE](LICENSE).
 
 Built by [Nous Research](https://nousresearch.com).
+
+## Multiple Telegram bots in one gateway
+
+Hermes can run multiple Telegram bot accounts inside one `hermes gateway` process. The
+backward-compatible default bot keeps the `telegram` adapter key, while named bots use
+account-qualified adapter keys such as `telegram:ceo` or `telegram:research`.
+
+Example `~/.hermes/.env`:
+
+```env
+# Default bot
+TELEGRAM_BOT_TOKEN=xxxxx
+TELEGRAM_ALLOWED_USERS=123456789
+
+# CEO bot
+TELEGRAM_BOT_TOKEN_CEO=xxxxx
+TELEGRAM_ALLOWED_USERS_CEO=123456789
+
+# Research bot
+TELEGRAM_BOT_TOKEN_RESEARCH=xxxxx
+TELEGRAM_ALLOWED_USERS_RESEARCH=123456789
+
+# Infra bot
+TELEGRAM_BOT_TOKEN_INFRA=xxxxx
+TELEGRAM_ALLOWED_USERS_INFRA=123456789
+```
+
+Start the gateway normally:
+
+```bash
+hermes gateway
+```
+
+Delivery targets:
+
+```text
+telegram:<chat_id>                  # default bot
+telegram:ceo:<chat_id>              # ceo bot
+telegram:research:<chat_id>         # research bot
+telegram:infra:<chat_id>            # infra bot
+telegram:infra:<chat_id>:<thread>   # infra bot forum/topic thread
+```
+
+Named Telegram bot sessions are isolated by adapter key, so the same Telegram user can
+DM multiple Hermes bots without sharing conversation history. Polling mode is supported
+for multi-bot local deployments. If webhook mode is enabled for multiple Telegram
+accounts, configure account-specific webhook URLs and unique local ports; ambiguous or
+conflicting webhook configuration fails startup instead of silently routing updates to
+the wrong bot.

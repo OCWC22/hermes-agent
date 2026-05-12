@@ -128,6 +128,8 @@ class SessionSource:
             d["user_id_alt"] = self.user_id_alt
         if self.chat_id_alt:
             d["chat_id_alt"] = self.chat_id_alt
+        if self.adapter_key:
+            d["adapter_key"] = self.adapter_key
         return d
     
     @classmethod

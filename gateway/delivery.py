@@ -297,10 +297,21 @@ class DeliveryRouter:
         metadata: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Deliver content to a messaging platform."""
-        adapter = self.adapters.get(target.adapter_key or target.platform) or self.adapters.get(target.platform)
+        adapter_lookup_key = target.adapter_key or target.platform
+        adapter = self.adapters.get(adapter_lookup_key)
+        if not adapter and adapter_lookup_key == target.platform.value:
+            adapter = self.adapters.get(target.platform)
         
         if not adapter:
-            raise ValueError(f"No adapter configured for {target.platform.value}")
+            configured = ", ".join(
+                sorted(str(key.value if hasattr(key, "value") else key) for key in self.adapters.keys())
+            ) or "none"
+            if target.adapter_key and target.adapter_key != target.platform.value:
+                raise ValueError(
+                    f'Telegram adapter "{target.adapter_key}" is not configured. '
+                    f"Configured adapters: {configured}."
+                )
+            raise ValueError(f"No adapter configured for {target.platform.value}. Configured adapters: {configured}.")
         
         if not target.chat_id:
             raise ValueError(f"No chat ID for {target.platform.value} delivery")
