@@ -303,7 +303,16 @@ class DeliveryRouter:
             adapter = self.adapters.get(target.adapter_key or target.platform) or self.adapters.get(target.platform)
         
         if not adapter:
-            raise ValueError(f"No adapter configured for {target.platform.value}")
+            requested = target.adapter_key or target.platform.value
+            configured = sorted(
+                str(key.value if hasattr(key, "value") else key)
+                for key in self.adapters.keys()
+            )
+            configured_text = ", ".join(configured) if configured else "none"
+            raise ValueError(
+                f'{target.platform.value.title()} adapter "{requested}" is not configured. '
+                f"Configured adapters: {configured_text}."
+            )
         
         if not target.chat_id:
             raise ValueError(f"No chat ID for {target.platform.value} delivery")

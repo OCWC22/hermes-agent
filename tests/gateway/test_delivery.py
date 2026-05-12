@@ -126,7 +126,8 @@ def test_missing_named_telegram_adapter_does_not_fallback_to_default():
     try:
         asyncio.run(router._deliver_to_platform(target, "hello", None))
     except ValueError as exc:
-        assert "No adapter configured for telegram" in str(exc)
+        assert 'Telegram adapter "telegram:ceo" is not configured.' in str(exc)
+        assert "Configured adapters: telegram." in str(exc)
     else:  # pragma: no cover
         raise AssertionError("missing named adapter should raise")
 
