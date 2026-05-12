@@ -494,7 +494,7 @@ class TelegramAdapter(BasePlatformAdapter):
             acquired, existing = acquire_scoped_lock(
                 "telegram-bot-token",
                 self._token_lock_identity,
-                metadata={"platform": self.platform.value},
+                metadata={"platform": self.platform.value, "adapter_key": self.adapter_key},
             )
             if not acquired:
                 owner_pid = existing.get("pid") if isinstance(existing, dict) else None
@@ -573,15 +573,15 @@ class TelegramAdapter(BasePlatformAdapter):
             await self._app.start()
 
             # Decide between webhook and polling mode
-            webhook_url = os.getenv("TELEGRAM_WEBHOOK_URL", "").strip()
+            webhook_url = str(self.config.extra.get("webhook_url") or os.getenv("TELEGRAM_WEBHOOK_URL", "")).strip()
 
             if webhook_url:
                 # ── Webhook mode ─────────────────────────────────────
                 # Telegram pushes updates to our HTTP endpoint.  This
                 # enables cloud platforms (Fly.io, Railway) to auto-wake
                 # suspended machines on inbound HTTP traffic.
-                webhook_port = int(os.getenv("TELEGRAM_WEBHOOK_PORT", "8443"))
-                webhook_secret = os.getenv("TELEGRAM_WEBHOOK_SECRET", "").strip() or None
+                webhook_port = int(self.config.extra.get("webhook_port") or os.getenv("TELEGRAM_WEBHOOK_PORT", "8443"))
+                webhook_secret = str(self.config.extra.get("webhook_secret") or os.getenv("TELEGRAM_WEBHOOK_SECRET", "")).strip() or None
                 from urllib.parse import urlparse
                 webhook_path = urlparse(webhook_url).path or "/telegram"
 

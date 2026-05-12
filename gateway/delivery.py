@@ -39,6 +39,7 @@ class DeliveryTarget:
     platform: Platform
     chat_id: Optional[str] = None  # None means use home channel
     thread_id: Optional[str] = None
+    adapter_key: Optional[str] = None
     is_origin: bool = False
     is_explicit: bool = False  # True if chat_id was explicitly specified
     
@@ -61,6 +62,7 @@ class DeliveryTarget:
                     platform=origin.platform,
                     chat_id=origin.chat_id,
                     thread_id=origin.thread_id,
+                    adapter_key=origin.adapter_key,
                     is_origin=True,
                 )
             else:
@@ -70,18 +72,33 @@ class DeliveryTarget:
         if target == "local":
             return cls(platform=Platform.LOCAL)
         
-        # Check for platform:chat_id or platform:chat_id:thread_id format
+        # Check for platform:chat_id, platform:chat_id:thread_id, or
+        # account-qualified Telegram format telegram:<account>:<chat_id>[:thread_id].
         if ":" in target:
-            parts = target.split(":", 2)
+            parts = target.split(":")
             platform_str = parts[0]
-            chat_id = parts[1] if len(parts) > 1 else None
-            thread_id = parts[2] if len(parts) > 2 else None
             try:
                 platform = Platform(platform_str)
-                return cls(platform=platform, chat_id=chat_id, thread_id=thread_id, is_explicit=True)
             except ValueError:
-                # Unknown platform, treat as local
                 return cls(platform=Platform.LOCAL)
+
+            adapter_key = platform.value
+            chat_index = 1
+            if platform == Platform.TELEGRAM and len(parts) >= 2:
+                possible_account = parts[1]
+                if possible_account and not possible_account.lstrip("-").isdigit():
+                    adapter_key = f"telegram:{possible_account}"
+                    chat_index = 2
+
+            chat_id = parts[chat_index] if len(parts) > chat_index else None
+            thread_id = parts[chat_index + 1] if len(parts) > chat_index + 1 else None
+            return cls(
+                platform=platform,
+                chat_id=chat_id,
+                thread_id=thread_id,
+                adapter_key=adapter_key,
+                is_explicit=True,
+            )
         
         # Just a platform name (use home channel)
         try:
@@ -97,11 +114,12 @@ class DeliveryTarget:
             return "origin"
         if self.platform == Platform.LOCAL:
             return "local"
+        prefix = self.adapter_key or self.platform.value
         if self.chat_id and self.thread_id:
-            return f"{self.platform.value}:{self.chat_id}:{self.thread_id}"
+            return f"{prefix}:{self.chat_id}:{self.thread_id}"
         if self.chat_id:
-            return f"{self.platform.value}:{self.chat_id}"
-        return self.platform.value
+            return f"{prefix}:{self.chat_id}"
+        return prefix
 
 
 class DeliveryRouter:
@@ -150,7 +168,11 @@ class DeliveryRouter:
             
             # Resolve home channel if needed
             if target.chat_id is None and target.platform != Platform.LOCAL:
-                home = self.config.get_home_channel(target.platform)
+                home = None
+                if target.adapter_key and target.adapter_key in self.adapters:
+                    home = getattr(getattr(self.adapters[target.adapter_key], "config", None), "home_channel", None)
+                if home is None:
+                    home = self.config.get_home_channel(target.platform)
                 if home:
                     target.chat_id = home.chat_id
                 else:
@@ -158,7 +180,7 @@ class DeliveryRouter:
                     continue
             
             # Deduplicate
-            key = (target.platform, target.chat_id, target.thread_id)
+            key = (target.adapter_key or target.platform, target.chat_id, target.thread_id)
             if key not in seen_platforms:
                 seen_platforms.add(key)
                 targets.append(target)
@@ -275,10 +297,21 @@ class DeliveryRouter:
         metadata: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Deliver content to a messaging platform."""
-        adapter = self.adapters.get(target.platform)
+        adapter_lookup_key = target.adapter_key or target.platform
+        adapter = self.adapters.get(adapter_lookup_key)
+        if not adapter and adapter_lookup_key == target.platform.value:
+            adapter = self.adapters.get(target.platform)
         
         if not adapter:
-            raise ValueError(f"No adapter configured for {target.platform.value}")
+            configured = ", ".join(
+                sorted(str(key.value if hasattr(key, "value") else key) for key in self.adapters.keys())
+            ) or "none"
+            if target.adapter_key and target.adapter_key != target.platform.value:
+                raise ValueError(
+                    f'Telegram adapter "{target.adapter_key}" is not configured. '
+                    f"Configured adapters: {configured}."
+                )
+            raise ValueError(f"No adapter configured for {target.platform.value}. Configured adapters: {configured}.")
         
         if not target.chat_id:
             raise ValueError(f"No chat ID for {target.platform.value} delivery")

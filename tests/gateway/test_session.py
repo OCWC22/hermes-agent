@@ -1001,3 +1001,25 @@ class TestRewriteTranscriptPreservesReasoning:
         assert after[0].get("reasoning") == "I need to think step by step."
         assert after[0].get("reasoning_details") == [{"type": "summary", "text": "step by step"}]
         assert after[0].get("codex_reasoning_items") == [{"id": "r1", "type": "reasoning"}]
+
+
+def test_telegram_named_account_session_key_is_isolated():
+    default = SessionSource(platform=Platform.TELEGRAM, chat_id="123", chat_type="dm", adapter_key="telegram")
+    ceo = SessionSource(platform=Platform.TELEGRAM, chat_id="123", chat_type="dm", adapter_key="telegram:ceo")
+    research = SessionSource(platform=Platform.TELEGRAM, chat_id="123", chat_type="dm", adapter_key="telegram:research")
+
+    assert build_session_key(default) == "agent:main:telegram:dm:123"
+    assert build_session_key(ceo) == "agent:main:telegram:ceo:dm:123"
+    assert build_session_key(research) == "agent:main:telegram:research:dm:123"
+    assert len({build_session_key(default), build_session_key(ceo), build_session_key(research)}) == 3
+
+
+def test_session_source_roundtrip_preserves_adapter_key():
+    source = SessionSource(platform=Platform.TELEGRAM, chat_id="123", adapter_key="telegram:ceo")
+
+    data = source.to_dict()
+    restored = SessionSource.from_dict(data)
+
+    assert data["adapter_key"] == "telegram:ceo"
+    assert restored.adapter_key == "telegram:ceo"
+    assert build_session_key(restored) == "agent:main:telegram:ceo:dm:123"

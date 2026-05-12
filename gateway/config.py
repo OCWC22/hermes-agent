@@ -11,6 +11,7 @@ Handles loading and validating configuration for:
 import logging
 import os
 import json
+import re
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
@@ -43,6 +44,162 @@ def _normalize_unauthorized_dm_behavior(value: Any, default: str = "pair") -> st
         if normalized in {"pair", "ignore"}:
             return normalized
     return default
+
+
+
+_TELEGRAM_ACCOUNT_SUFFIX_RE = re.compile(r"^TELEGRAM_BOT_TOKEN_([A-Z0-9_]+)$")
+_TELEGRAM_ACCOUNT_SUFFIX_ALLOWED_RE = re.compile(r"^[A-Z0-9_]+$")
+_TELEGRAM_FALLBACK_FIELDS = {
+    "ALLOWED_USERS",
+    "GROUP_ALLOWED_USERS",
+    "GROUP_ALLOWED_CHATS",
+    "HOME_CHANNEL",
+    "HOME_CHANNEL_NAME",
+    "REACTIONS",
+    "REPLY_TO_MODE",
+    "IGNORED_THREADS",
+    "PROXY",
+}
+
+
+@dataclass
+class TelegramAccountConfig:
+    """Environment-derived configuration for one Telegram bot account."""
+    account_name: str
+    adapter_key: str
+    bot_token: str
+    allowed_users: Optional[str] = None
+    group_allowed_users: Optional[str] = None
+    group_allowed_chats: Optional[str] = None
+    home_channel: Optional[str] = None
+    home_channel_name: Optional[str] = None
+    webhook_url: Optional[str] = None
+    webhook_port: Optional[str] = None
+    webhook_secret: Optional[str] = None
+    reactions: Optional[str] = None
+    reply_to_mode: Optional[str] = None
+    ignored_threads: Optional[str] = None
+    proxy: Optional[str] = None
+
+
+def _normalize_telegram_account_suffix(suffix: str) -> Optional[str]:
+    """Normalize a TELEGRAM_BOT_TOKEN_<SUFFIX> suffix into an account name."""
+    raw = (suffix or "").strip().upper()
+    if not raw or not _TELEGRAM_ACCOUNT_SUFFIX_ALLOWED_RE.match(raw):
+        return None
+    normalized = re.sub(r"_+", "_", raw).strip("_").lower()
+    return normalized or None
+
+
+def _telegram_env(name: str, account_name: str, *, fallback_to_default: bool = True, env_suffix: Optional[str] = None) -> Optional[str]:
+    if account_name == "default":
+        return os.getenv(f"TELEGRAM_{name}")
+    suffixes = []
+    if env_suffix:
+        suffixes.append(env_suffix.upper())
+    suffixes.append(account_name.upper())
+    account_value = None
+    for suffix in dict.fromkeys(suffixes):
+        account_value = os.getenv(f"TELEGRAM_{name}_{suffix}")
+        if account_value not in (None, ""):
+            return account_value
+    if fallback_to_default and name in _TELEGRAM_FALLBACK_FIELDS:
+        default_value = os.getenv(f"TELEGRAM_{name}")
+        if default_value not in (None, ""):
+            logger.debug(
+                'Telegram account "%s" inherited TELEGRAM_%s from default config',
+                account_name,
+                name,
+            )
+            return default_value
+    return account_value
+
+
+def load_telegram_accounts_from_env() -> List[TelegramAccountConfig]:
+    """Discover Telegram bot accounts from TELEGRAM_BOT_TOKEN* env vars.
+
+    The default account keeps the historical adapter key ``telegram``. Named
+    accounts use account-qualified adapter keys like ``telegram:ceo``.
+    """
+    accounts: List[TelegramAccountConfig] = []
+
+    def _build(account_name: str, token: str, env_suffix: Optional[str] = None) -> TelegramAccountConfig:
+        adapter_key = "telegram" if account_name == "default" else f"telegram:{account_name}"
+        return TelegramAccountConfig(
+            account_name=account_name,
+            adapter_key=adapter_key,
+            bot_token=token,
+            allowed_users=_telegram_env("ALLOWED_USERS", account_name, env_suffix=env_suffix),
+            group_allowed_users=_telegram_env("GROUP_ALLOWED_USERS", account_name, env_suffix=env_suffix),
+            group_allowed_chats=_telegram_env("GROUP_ALLOWED_CHATS", account_name, env_suffix=env_suffix),
+            home_channel=_telegram_env("HOME_CHANNEL", account_name, env_suffix=env_suffix),
+            home_channel_name=_telegram_env("HOME_CHANNEL_NAME", account_name, env_suffix=env_suffix),
+            webhook_url=_telegram_env("WEBHOOK_URL", account_name, fallback_to_default=False, env_suffix=env_suffix),
+            webhook_port=_telegram_env("WEBHOOK_PORT", account_name, fallback_to_default=False, env_suffix=env_suffix),
+            webhook_secret=_telegram_env("WEBHOOK_SECRET", account_name, fallback_to_default=False, env_suffix=env_suffix),
+            reactions=_telegram_env("REACTIONS", account_name, env_suffix=env_suffix),
+            reply_to_mode=(_telegram_env("REPLY_TO_MODE", account_name, env_suffix=env_suffix) or "").lower() or None,
+            ignored_threads=_telegram_env("IGNORED_THREADS", account_name, env_suffix=env_suffix),
+            proxy=_telegram_env("PROXY", account_name, env_suffix=env_suffix),
+        )
+
+    default_token = (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
+    if default_token:
+        accounts.append(_build("default", default_token))
+
+    seen_account_names = {"default" if default_token else ""}
+    for env_name, raw_token in sorted(os.environ.items()):
+        match = _TELEGRAM_ACCOUNT_SUFFIX_RE.match(env_name)
+        if not match:
+            continue
+        suffix = match.group(1)
+        account_name = _normalize_telegram_account_suffix(suffix)
+        if not account_name:
+            raise ValueError(f"Malformed Telegram account suffix in {env_name!r}.")
+        if account_name == "default":
+            raise ValueError(
+                "TELEGRAM_BOT_TOKEN_DEFAULT is ambiguous; use TELEGRAM_BOT_TOKEN for the default Telegram account."
+            )
+        token = (raw_token or "").strip()
+        if not token:
+            logger.warning("Ignoring empty Telegram bot token for account %s", account_name)
+            continue
+        if account_name in seen_account_names:
+            raise ValueError(f'Duplicate Telegram account name "{account_name}" configured.')
+        seen_account_names.add(account_name)
+        accounts.append(_build(account_name, token, suffix))
+
+    token_owner: Dict[str, str] = {}
+    for account in accounts:
+        existing = token_owner.get(account.bot_token)
+        if existing:
+            raise ValueError(
+                "Duplicate Telegram bot token configured for accounts "
+                f'"{existing}" and "{account.account_name}".'
+            )
+        token_owner[account.bot_token] = account.account_name
+
+    webhook_accounts = [account for account in accounts if account.webhook_url]
+    if len(accounts) > 1 and webhook_accounts and len(webhook_accounts) != len(accounts):
+        configured = ", ".join(account.adapter_key for account in webhook_accounts)
+        raise ValueError(
+            "Multi-account Telegram webhook mode requires account-specific webhook config "
+            f"for every Telegram account. Webhook configured for: {configured}."
+        )
+    if len(webhook_accounts) > 1:
+        seen_ports: Dict[str, str] = {}
+        for account in webhook_accounts:
+            port = str(account.webhook_port or "8443")
+            existing = seen_ports.get(port)
+            if existing:
+                raise ValueError(
+                    "Multi-account Telegram webhook mode requires unique account-specific "
+                    f"webhook ports in this gateway; accounts {existing} and {account.account_name} "
+                    f"both use port {port}."
+                )
+            seen_ports[port] = account.account_name
+
+    return accounts
 
 
 class Platform(Enum):
@@ -140,6 +297,7 @@ class SessionResetPolicy:
 class PlatformConfig:
     """Configuration for a single messaging platform."""
     enabled: bool = False
+    adapter_key: Optional[str] = None
     token: Optional[str] = None  # Bot token (Telegram, Discord)
     api_key: Optional[str] = None  # API key if different from token
     home_channel: Optional[HomeChannel] = None
@@ -156,6 +314,7 @@ class PlatformConfig:
     def to_dict(self) -> Dict[str, Any]:
         result = {
             "enabled": self.enabled,
+            "adapter_key": self.adapter_key,
             "extra": self.extra,
             "reply_to_mode": self.reply_to_mode,
         }
@@ -175,6 +334,7 @@ class PlatformConfig:
         
         return cls(
             enabled=data.get("enabled", False),
+            adapter_key=data.get("adapter_key"),
             token=data.get("token"),
             api_key=data.get("api_key"),
             home_channel=home_channel,

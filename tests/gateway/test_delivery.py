@@ -94,3 +94,51 @@ class TestDeliveryRouter:
         targets = router.resolve_targets(["local"])
 
         assert [target.platform for target in targets] == [Platform.LOCAL]
+
+
+def test_account_qualified_telegram_target():
+    target = DeliveryTarget.parse("telegram:ceo:123456789")
+
+    assert target.platform == Platform.TELEGRAM
+    assert target.adapter_key == "telegram:ceo"
+    assert target.chat_id == "123456789"
+    assert target.to_string() == "telegram:ceo:123456789"
+
+
+def test_account_qualified_telegram_target_with_thread():
+    target = DeliveryTarget.parse("telegram:infra:-1001234567890:17585")
+
+    assert target.adapter_key == "telegram:infra"
+    assert target.chat_id == "-1001234567890"
+    assert target.thread_id == "17585"
+    assert target.to_string() == "telegram:infra:-1001234567890:17585"
+
+
+class _DummyAdapter:
+    def __init__(self, home_channel=None):
+        self.config = type("Config", (), {"home_channel": home_channel})()
+
+
+def test_missing_named_telegram_adapter_errors_clearly():
+    import asyncio
+    import pytest
+
+    router = DeliveryRouter(GatewayConfig(always_log_local=False), adapters={"telegram": object()})
+    target = DeliveryTarget.parse("telegram:ceo:123")
+
+    with pytest.raises(ValueError, match='Telegram adapter "telegram:ceo" is not configured'):
+        asyncio.run(router._deliver_to_platform(target, "hi", None))
+
+
+def test_named_home_channel_resolves_from_adapter_config():
+    home = HomeChannel(platform=Platform.TELEGRAM, chat_id="999", name="CEO")
+    router = DeliveryRouter(
+        GatewayConfig(always_log_local=False),
+        adapters={"telegram:ceo": _DummyAdapter(home)},
+    )
+
+    targets = router.resolve_targets("telegram:ceo")
+
+    assert len(targets) == 1
+    assert targets[0].adapter_key == "telegram:ceo"
+    assert targets[0].chat_id == "999"
