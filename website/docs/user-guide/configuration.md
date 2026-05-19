@@ -1724,3 +1724,33 @@ Override the working directory:
 MESSAGING_CWD=/home/myuser/projects    # Gateway sessions
 TERMINAL_CWD=/workspace                # All terminal sessions
 ```
+
+### Repeatable engineering workflows
+
+For long-running repo maintenance workflows, configure Hermes so every run starts with the same working directory, project context files, and reusable skills instead of relying on chat history. This is especially important for multi-repo validation jobs where the agent must preserve dirty work, pull upstream safely, run tests, and produce machine-readable artifacts.
+
+Recommended pattern:
+
+```yaml
+terminal:
+  cwd: /Users/chen/Projects/inferguard
+  env_passthrough:
+    - INFERGUARD_LMCACHE_LOCAL_SOURCE
+    - INFERGUARD_VLLM_LOCAL_SOURCE
+    - MODAL_TOKEN_ID
+    - MODAL_TOKEN_SECRET
+
+delegation:
+  max_concurrent_children: 3
+  max_spawn_depth: 1
+```
+
+Then keep the workflow itself in a skill or project `AGENTS.md` / `HERMES.md`, with exact commands and verification gates. For LMCache / vLLM / SGLang observability work, the repeatable contract should include:
+
+- Fetch/pull upstream safely without resetting dirty work.
+- Separate real tests/docs/prompt exports from accidental noise such as `.DS_Store`.
+- Run focused LMCache MP, CacheBlend, SerDe, and InferGuard CLI tests before pushing.
+- Treat deliberate-capacity L1 allocation failures as diagnostic findings unless read failures or packet failure reasons are present.
+- Regenerate the final JSON artifact after cleanup, for example `/tmp/lmcache-merge-ready-current.json`.
+
+For scheduled or background variants, create a cron job with `workdir` set to the repo root and attach the relevant skills. Cron runs start in a fresh session, so the prompt must contain the repo paths, packet artifact paths, expected test commands, and final artifact path explicitly.

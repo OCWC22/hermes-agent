@@ -274,6 +274,14 @@ When asked to auto-fix CI, follow this loop:
 5. Wait for CI → re-check status
 6. Repeat if still failing (up to 3 attempts, then ask the user)
 
+### Inference-stack / LMCache MP readiness
+
+When validating inference-stack PRs across LMCache, vLLM, SGLang, InferGuard, and GPU/Modal runtime proof, keep evidence planes separate: local tests, upstream CI/review gates, PR comments, website/docs commits, and live hardware/runtime proof are different facts. Do not imply one proves another.
+
+For LMCache CacheBlend / MP observability work intended for NeoCloud platform engineers, treat the task as engineering execution, not marketing: inspect dirty work first, preserve useful docs/prompt exports, prove H100/Modal packet evidence, keep CacheBlend boundary evidence separate from generic KV offload, classify L1 allocation failures under deliberate capacity pressure as diagnostic unless read failures or packet failure reasons are present, and regenerate the merge-ready JSON after cleanup.
+
+Use `references/lmcache-mp-merge-readiness.md` for the compact checklist and answer shape.
+
 ## 6. Merging
 
 **With gh:**
