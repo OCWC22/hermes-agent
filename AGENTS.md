@@ -2,6 +2,20 @@
 
 Instructions for AI coding assistants and developers working on the hermes-agent codebase.
 
+## Maintainer-Facing PR Comments
+
+For William/Chen OSS PR work, do not write agent-generated/status-style GitHub
+comments by default. Kuntai Du explicitly said that incremental generated updates
+make PR threads difficult to follow. Prefer one concise human summary focused on:
+
+- actual design decisions;
+- tradeoffs and scope boundaries;
+- relevant verification only when it helps review;
+- the exact reviewer attention requested.
+
+Avoid repeated E2E/status packets, chronological debugging notes, and "agent ran X"
+narratives unless a maintainer directly asks for that level of detail.
+
 ## Development Environment
 
 ```bash
