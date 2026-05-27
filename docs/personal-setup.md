@@ -23,20 +23,27 @@ Each gateway runs as a macOS LaunchAgent; the plists are in
 
 ## Start / stop / status — all gateways at once
 
-The wrapper `~/.local/bin/hermes-gateways` (note the **plural**) fans every
-action out across all 5 profiles:
+The wrapper `~/.local/bin/hermes-gateways` (note the **plural**, sourced from
+`scripts/hermes-gateways` in the repo) fans every action out across every
+profile it finds:
 
 ```bash
-hermes-gateways start      # start all 5
-hermes-gateways stop       # stop all 5
-hermes-gateways restart    # restart all 5
+hermes-gateways start      # start every gateway
+hermes-gateways stop       # stop every gateway
+hermes-gateways restart    # restart every gateway
+hermes-gateways reload     # reload launchd / systemd unit + restart
 hermes-gateways status     # show status for each
-hermes-gateways list       # delegates to `hermes gateway list`
+hermes-gateways update     # one `hermes update` + restart every gateway
+hermes-gateways logs       # tail -F every gateway log + error log together
+hermes-gateways kill       # SIGTERM every gateway process (bypass launchd)
+hermes-gateways list       # show what profiles were discovered
 ```
 
-The list of profiles it iterates is hardcoded in that script. **Add a new
-profile?** Edit `~/.local/bin/hermes-gateways` and append the name to the
-`profiles=` line.
+Profiles are **auto-discovered** from
+`~/Library/LaunchAgents/ai.hermes.gateway*.plist` on macOS and
+`~/.config/systemd/user/hermes-gateway*.service` on Linux. **Add a new
+profile?** Just `hermes profile create <name>` and install its gateway —
+`hermes-gateways` picks it up on the next run. No script editing required.
 
 ## Start / stop / status — one profile
 

@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
-# hermes-all — fan a single command out to every Hermes gateway profile.
+# hermes-gateways — fan a single command out to every Hermes gateway profile.
 #
 # Profiles are auto-discovered from the platform's service manager directory:
 #   macOS:   ~/Library/LaunchAgents/ai.hermes.gateway*.plist
 #   Linux:   ~/.config/systemd/user/hermes-gateway*.service
 # The default profile is the unsuffixed unit ("ai.hermes.gateway" / "hermes-gateway").
+# No hardcoded profile list — add a new profile, it shows up automatically.
 #
 # Usage:
-#   hermes-all start|stop|restart|status|reload|update|logs|kill|list [extra args...]
+#   hermes-gateways start|stop|restart|status|reload|update|logs|kill|list [extra args...]
 #
 # Examples:
-#   hermes-all status
-#   hermes-all restart
-#   hermes-all logs           # tails every gateway log together
-#   hermes-all update         # one `hermes update` + restart of every profile
-#   hermes-all kill           # SIGTERM every running gateway process
+#   hermes-gateways status
+#   hermes-gateways restart
+#   hermes-gateways logs           # tails every gateway log together
+#   hermes-gateways update         # one `hermes update` + restart of every profile
+#   hermes-gateways kill           # SIGTERM every running gateway process
 
 set -u
 
@@ -73,7 +74,10 @@ cmd_list() {
     any=1
     if [ "$p" = "__default__" ]; then echo "  • default"; else echo "  • $p"; fi
   done < <(discover_profiles | awk '!seen[$0]++')
-  [ "$any" -eq 0 ] && echo "  ${c_ylw}(none found — no gateway service installed yet)${c_rst}"
+  if [ "$any" -eq 0 ]; then
+    echo "  ${c_ylw}(none found — no gateway service installed yet)${c_rst}"
+  fi
+  return 0
 }
 
 cmd_logs() {
