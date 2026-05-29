@@ -4,7 +4,19 @@ Instructions for AI coding assistants and developers working on the hermes-agent
 
 ## William real Chrome routing
 
-For logged-in browser work, first discover and reuse William's already-open real Chrome/browser-harness sessions before opening or navigating a new tab/profile. Enumerate existing Chrome tabs and CDP targets first (`browser-harness --doctor`, AppleScript tab URLs, `/json/list` on active CDP ports). If William says the page/browser/tab is already open, attach to that existing tab/context and do not create a new Chrome profile, cloud browser, or unauthenticated CDP session. If blocked by Google/Chrome/passkey auth, report the exact blocker and ask William to unlock that existing tab/profile.
+For any browser-dependent task, first discover, inventory, and reuse William's already-open real Chrome/CDP/browser-harness sessions before opening or navigating anything. This is mandatory every single time, especially for Instagram, Threads, Gmail, Google, Higgsfield, Atlas, media downloads, screenshots, scraping, and any account-specific workflow. The goal is to avoid tab/profile spam and avoid losing logged-in state. Do not rely on one hardcoded port; inventory every available open CDP/browser target first.
+
+Required routing checklist before any browser action:
+
+1. Update the working inventory scratch file before the browser task: `$HERMES_HOME/browser-cdp-inventory.md` for the active profile, currently `/Users/chen/.hermes/profiles/intern/browser-cdp-inventory.md`. Preferred helper: `/Users/chen/.hermes/shared/scripts/update_browser_cdp_inventory.py --note '<before task>'`.
+2. Inspect all already-open CDP/browser-harness targets first. Start with env-provided CDP URLs such as `BU_CDP_URL` / `BROWSER_CDP_URL`, scan common local CDP ports, run `browser-harness --doctor`, `browser-harness -c 'print(list_tabs())'`, query `/json/version` and `/json/list` on every responding CDP endpoint, and use AppleScript tab URL enumeration when available.
+3. Enumerate existing Chrome tabs and CDP targets before `browser_navigate`, browser-harness `new_tab()`, `goto_url()`, or launching/using any new browser/profile.
+4. If a matching logged-in tab or profile is already open, attach to that target and continue there. Do not open a fresh Chrome profile, Browserbase/cloud browser, generic unauthenticated browser session, or a new tab that loses login state.
+5. Only open a new tab/profile after confirming no matching logged-in CDP target exists, and only if the user explicitly asks or approves that fallback.
+6. If blocked by Google/Chrome/passkey/auth or remote-debugging approval, report the exact blocker and ask William to unlock or approve the existing tab/profile. Do not silently fall back to a logged-out browser.
+7. Update `$HERMES_HOME/browser-cdp-inventory.md` again after the browser task with changed URLs, new tabs, closed tabs, selected target, and any blocker.
+
+If William says the page/browser/tab is already open, treat that as authoritative. Attach to the existing tab/context first. Never route around this by opening a fresh logged-out browser.
 
 
 ## Touchdown / William golden outreach standard
