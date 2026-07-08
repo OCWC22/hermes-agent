@@ -323,3 +323,16 @@ What makes Claude's design truly distinctive is its warm neutral palette. Every 
 5. For shadows, use "ring shadow (0px 0px 0px 1px)" or "whisper shadow" — never generic "drop shadow"
 6. Specify the warm background — "on Parchment (#f5f4ed)" or "on Near Black (#141413)"
 7. Keep illustrations organic and conceptual — describe "hand-drawn-feeling" style
+
+## Touchdown Labs canonical framing (2026-06-10)
+
+Use this for public/customer-facing Touchdown Labs copy unless a narrower local instruction explicitly overrides it:
+
+```text
+Spend less. Create more.
+AI transformation, backed by full-stack infrastructure optimization.
+We architect AI around your business value and maximize useful output per dollar — your people, prompts, agents, MCP tools, context, and serving stack, all the way down to kernels, memory tiers, and hardware fit.
+```
+
+Expanded rule: the AI budget includes people, prompts, agents, MCP tools, context, models, routing, API choices, self-hosting decisions, and the serving stack. Focus on transformation + infrastructure together: self-hosting and API optimization from token to kernel, finding which layer limits useful output, then fixing the roadmap, measurement loop, and implementation path.
+
